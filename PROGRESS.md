@@ -6,8 +6,8 @@ Aplikacja mobilna (Android) służąca do automatycznego wykrywania i analizy pr
 ---
 
 ## 2. Podział ról w zespole
-*   **Programista Android (Student 1):** Architektura aplikacji, obsługa CameraX, optymalizacja obrazu (OpenCV), zarządzanie pamięcią, integracja modułu wnioskowania.
-*   **Specjalista AI(Student 2):** Trening modelu, konwersja do formatu NCNN, optymalizacja wag sieciowych.
+*   **Programista Android (Student 2):** Architektura aplikacji, obsługa CameraX, optymalizacja obrazu (OpenCV), zarządzanie pamięcią, integracja modułu wnioskowania.
+*   **Specjalista AI(Student 1):** Trening modelu, konwersja do formatu NCNN, optymalizacja wag sieciowych.
 ---
 ## 3. Stan prac - Model AI & NCNN (ZREALIZOWANE) (STUDENT 1)
 
