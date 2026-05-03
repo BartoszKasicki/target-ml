@@ -6,7 +6,11 @@ import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.provider.MediaStore;
+import android.util.Log;
 import android.widget.Button;
+import android.widget.ImageButton;
+import android.widget.SeekBar;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -16,11 +20,13 @@ import androidx.camera.lifecycle.ProcessCameraProvider;
 import androidx.camera.view.PreviewView;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+import androidx.lifecycle.LiveData;
 
 import com.google.common.util.concurrent.ListenableFuture;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -28,17 +34,34 @@ import java.util.concurrent.Executors;
 public class MainActivity extends AppCompatActivity {
 
     private PreviewView viewFinder;
-    private Button btnCapture;
+    private ImageButton btnCapture;
     private ImageCapture imageCapture = null;
     private ExecutorService cameraExecutor;
+    private SeekBar zoomSlider;
+    private Camera camera;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+
         viewFinder = findViewById(R.id.viewFinder);
         btnCapture = findViewById(R.id.btnCapture);
+        zoomSlider = findViewById(R.id.zoomSlider);
+
+        // 1. Znajdujemy celownik i pole na wynik
+        Button btnSwitchCamera = findViewById(R.id.btnSwitchCamera);
+        TextView txtResult = findViewById(R.id.txtResult);
+
+        // klikniecie przełacza obiektyw
+        btnSwitchCamera.setOnClickListener(v -> {
+            cameraIndex++; // Zwiększamy indeks
+            startCamera(); // Restartujemy kamerę
+            Toast.makeText(this, "Szukam następnego obiektywu...", Toast.LENGTH_SHORT).show();
+        });
+        // -----------------------
 
         if (allPermissionsGranted()) {
             startCamera();
@@ -47,11 +70,10 @@ public class MainActivity extends AppCompatActivity {
         }
 
         btnCapture.setOnClickListener(v -> captureImage());
-
-        // Initialize camera executor
         cameraExecutor = Executors.newSingleThreadExecutor();
     }
-
+    private int lensFacing = CameraSelector.LENS_FACING_BACK;
+    private int cameraIndex = 0; //licznik obiektywów
     private void startCamera() {
         ListenableFuture<ProcessCameraProvider> cameraProviderFuture = ProcessCameraProvider.getInstance(this);
 
@@ -59,22 +81,61 @@ public class MainActivity extends AppCompatActivity {
             try {
                 ProcessCameraProvider cameraProvider = cameraProviderFuture.get();
 
+                // POBIERAMY LISTĘ WSZYSTKICH DOSTĘPNYCH KAMER (Punkt 1)
+                List<CameraInfo> availableCameras = cameraProvider.getAvailableCameraInfos();
+                if (availableCameras.isEmpty()) return;
+
+                // Jeśli mamy np. 3 obiektywy, pilnujemy by nie wyjść poza listę
+                if (cameraIndex >= availableCameras.size()) cameraIndex = 0;
+
+                // Wybieramy konkretny obiektyw z listy
+                CameraSelector cameraSelector = availableCameras.get(cameraIndex).getCameraSelector();
+
                 Preview preview = new Preview.Builder().build();
                 preview.setSurfaceProvider(viewFinder.getSurfaceProvider());
 
-                imageCapture = new ImageCapture.Builder().build();
-
-                CameraSelector cameraSelector = new CameraSelector.Builder()
-                        .requireLensFacing(CameraSelector.LENS_FACING_BACK)
+                imageCapture = new ImageCapture.Builder()
+                        .setCaptureMode(ImageCapture.CAPTURE_MODE_MAXIMIZE_QUALITY)
                         .build();
 
                 cameraProvider.unbindAll();
-                cameraProvider.bindToLifecycle(this, cameraSelector, preview, imageCapture);
+                zoomSlider.setProgress(0);
+                camera = cameraProvider.bindToLifecycle(this, cameraSelector, preview, imageCapture);
+
+                initZoomSlider();
 
             } catch (Exception e) {
-                Toast.makeText(MainActivity.this, "Failed to start camera", Toast.LENGTH_SHORT).show();
+                Toast.makeText(MainActivity.this, "Błąd startu kamery", Toast.LENGTH_SHORT).show();
             }
         }, ContextCompat.getMainExecutor(this));
+    }
+
+    private void initZoomSlider() {
+        zoomSlider.setMax(100); // Upewniamy się, że zakres to 0-100
+        zoomSlider.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                // Reagujemy tylko, gdy to użytkownik przesuwa (fromUser)
+                // i gdy mamy aktywny obiekt kamery
+                if (fromUser && camera != null) {
+                    try {
+                        // Pobieramy aktualny stan zooma z kamery
+                        ZoomState zoomState = camera.getCameraInfo().getZoomState().getValue();
+                        if (zoomState != null) {
+                            // Skalujemy progress (0.0 - 1.0)
+                            float linearZoom = (progress / 100f)*0.4f;
+
+                            // Bardzo ważne: setLinearZoom jest bezpieczniejsze niż setZoomRatio
+                            camera.getCameraControl().setLinearZoom(linearZoom);
+                        }
+                    } catch (Exception e) {
+                        Log.e("ZoomError", "Błąd sprzętowy zooma: " + e.getMessage());
+                    }
+                }
+            }
+            @Override public void onStartTrackingTouch(SeekBar seekBar) {}
+            @Override public void onStopTrackingTouch(SeekBar seekBar) {}
+        });
     }
 
     private void captureImage() {
