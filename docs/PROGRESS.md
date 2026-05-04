@@ -18,10 +18,9 @@ Projekt zakłada stworzenie kompleksowego systemu do automatycznego wykrywania i
 
 ## 3. Stan prac - Model AI & NCNN (ZREALIZOWANE) (STUDENT 1)
 
-- [ ] **Trening modelu:** (np. Etap zbierania danych / Trening wstępny / Ewaluacja)
-- [ ] **Konwersja:** (np. ONNX -> NCNN)
-- [ ] **Optymalizacja:** (np. Kwantyzacja modelu do FP16/INT8)
-- [ ] **Pliki końcowe:** (Oczekiwanie na pliki .param i .bin)
+- [ ] **Trening modelu:** - załadowano pierwszą paczkę danych testowych.
+- [ ] **Struktura** - Przygotowano strukturę pod uczenie maszynowe. 
+- [ ] **Python** - Przygotowano wewnętrzne środowisko python venv - jest w pliku {.gitignore} naleźy przygotować je lokalnie z pomocą instrukcji {docs/initial_setup.md}. 
 
 ---
 
