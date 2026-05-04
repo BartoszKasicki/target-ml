@@ -1,14 +1,21 @@
 # Raport Postępu Prac - Projekt: Detekcja Przestrzelin na Tarczy
 
 ## 1. Opis Projektu
-Aplikacja mobilna (Android) służąca do automatycznego wykrywania i analizy przestrzelin na tarczy strzeleckiej w czasie rzeczywistym. System wykorzystuje kamerę urządzenia, bibliotekę OpenCV do wstępnej obróbki obrazu oraz silnik NCNN do wnioskowania za pomocą sieci neuronowych.
+Projekt zakłada stworzenie kompleksowego systemu do automatycznego wykrywania i analizy przestrzelin na tarczy strzeleckiej. Rozwiązanie opiera się na architekturze Edge AI (obliczenia na urządzeniu) i składa się z trzech głównych filarów technologicznych:
+1. **Generowanie Danych:** Tworzenie syntetycznego zbioru danych uczących z wykorzystaniem silnika renderującego (OpenGL/C++) oraz generowanie adnotacji w formacie YOLO.
+2. **Moduł Machine Learning:** Trening sieci neuronowej do detekcji obiektów w oparciu o architekturę **YOLO** (np. YOLOv8/YOLOv11 w środowisku PyTorch), zakończony konwersją modelu (.onnx -> .param/.bin).
+3. **Aplikacja Mobilna (Android):** Aplikacja natywna (Java/Kotlin, wzorzec MVVM) przechwytująca obraz na żywo (CameraX), która przy pomocy interfejsu JNI oraz C++ realizuje wnioskowanie za pomocą lekkiego frameworka NCNN i biblioteki OpenCV.
 
 ---
 
-## 2. Podział ról w zespole
-*   **Programista Android (Student 2):** Architektura aplikacji, obsługa CameraX, optymalizacja obrazu (OpenCV), zarządzanie pamięcią, integracja modułu wnioskowania.
-*   **Specjalista AI(Student 1):** Trening modelu, konwersja do formatu NCNN, optymalizacja wag sieciowych.
+## 2. Podział ról w zespole i wykorzystywane technologie
+*   **Prowadzący (Generator Danych):** Budowa generatora w OpenGL/C++, renderowanie tarcz ze zmiennym oświetleniem/perspektywą oraz eksport adnotacji bounding boxów (format YOLO).
+*   **Student 1 (Inżynier ML- Student 1):** Przygotowanie środowiska w Pythonie (PyTorch), trening na danych syntetycznych, ewaluacja modelu YOLO oraz jego konwersja do formatu NCNN. Współpraca przy logice wnioskowania w C++.
+*   **Student 2 (Inżynier Mobile - Student 2):** Implementacja UI/UX, zarządzanie cyklem życia aplikacji i sprzętem (CameraX), natywny pre-processing obrazu, optymalizacja pamięci operacyjnej (RAM). Współpraca przy integracji mostu JNI.
+*   **Zadanie Wspólne (Integracja Natywna):** Stworzenie mostu JNI łączącego kod Javy z C++, implementacja logiki wczytywania wag NCNN oraz przesyłania klatek obrazu do klasyfikatora na urządzeniu mobilnym.
+
 ---
+
 ## 3. Stan prac - Model AI & NCNN (ZREALIZOWANE) (STUDENT 1)
 
 - [ ] **Trening modelu:** (np. Etap zbierania danych / Trening wstępny / Ewaluacja)
