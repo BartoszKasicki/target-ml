@@ -1,8 +1,10 @@
 package com.example.przestrzeliny_app;
 
-import android.Manifest;
 import android.content.ContentValues;
-import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Matrix;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.provider.MediaStore;
@@ -16,17 +18,15 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.camera.core.*;
-import androidx.camera.lifecycle.ProcessCameraProvider;
 import androidx.camera.view.PreviewView;
-import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
-import androidx.lifecycle.LiveData;
 
-import com.google.common.util.concurrent.ListenableFuture;
+import org.opencv.android.OpenCVLoader; // <-- OpenCV
 
+import java.io.OutputStream;
+import java.nio.ByteBuffer;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -35,161 +35,125 @@ public class MainActivity extends AppCompatActivity {
 
     private PreviewView viewFinder;
     private ImageButton btnCapture;
-    private ImageCapture imageCapture = null;
-    private ExecutorService cameraExecutor;
     private SeekBar zoomSlider;
-    private Camera camera;
+    private Button btnSwitchCamera;
+    private TextView txtResult;
 
+    // Nasi pomocnicy
+    private CameraManager cameraManager;
+    private PermissionHelper permissionHelper;
+    private ExecutorService cameraExecutor;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        // 1. Uruchamiamy silnik OpenCV
+        if (OpenCVLoader.initDebug()) {
+            Log.d("OPENCV", "OpenCV załadowane i czeka w gotowości!");
+        } else {
+            Log.e("OPENCV", "Błąd ładowania OpenCV");
+            Toast.makeText(this, "Błąd biblioteki graficznej", Toast.LENGTH_SHORT).show();
+        }
 
+        // 2. Łączymy widoki z XML
         viewFinder = findViewById(R.id.viewFinder);
         btnCapture = findViewById(R.id.btnCapture);
         zoomSlider = findViewById(R.id.zoomSlider);
+        btnSwitchCamera = findViewById(R.id.btnSwitchCamera);
+        txtResult = findViewById(R.id.txtResult); //wyniki YOLO w przyszłości
 
-        // 1. Znajdujemy celownik i pole na wynik
-        Button btnSwitchCamera = findViewById(R.id.btnSwitchCamera);
-        TextView txtResult = findViewById(R.id.txtResult);
+        // 3. Inicjalizacja Menedżera Kamery
+        cameraManager = new CameraManager(this, viewFinder, zoomSlider);
 
-        // klikniecie przełacza obiektyw
+        // 4. Obsługa zmiany obiektywu
         btnSwitchCamera.setOnClickListener(v -> {
-            cameraIndex++; // Zwiększamy indeks
-            startCamera(); // Restartujemy kamerę
+            cameraManager.switchCamera();
             Toast.makeText(this, "Szukam następnego obiektywu...", Toast.LENGTH_SHORT).show();
         });
-        // -----------------------
 
-        if (allPermissionsGranted()) {
-            startCamera();
+        // 5. Inicjalizacja Pomocnika od uprawnień z "Krótkofalówką"
+        permissionHelper = new PermissionHelper(this, new PermissionHelper.PermissionListener() {
+            @Override
+            public void onPermissionsGranted() {
+                cameraManager.startCamera(); // Mamy zgodę -> Odpalamy kamerę
+            }
+
+            @Override
+            public void onPermissionsDenied() {
+                Toast.makeText(MainActivity.this, "Brak uprawnień do kamery.", Toast.LENGTH_SHORT).show();
+                finish(); // Brak zgody -> Wyłączamy apkę
+            }
+        });
+
+        // 6. Sprawdzamy uprawnienia przy starcie
+        if (permissionHelper.allPermissionsGranted()) {
+            cameraManager.startCamera();
         } else {
-            ActivityCompat.requestPermissions(this, REQUIRED_PERMISSIONS, REQUEST_CODE_PERMISSIONS);
+            permissionHelper.requestPermissions();
         }
 
-        btnCapture.setOnClickListener(v -> captureImage());
+        // 7. Podpięcie przycisku robienia zdjęć (TEGO BRAKOWAŁO!)
+        btnCapture.setOnClickListener(v -> takePhotoAndProcess());
         cameraExecutor = Executors.newSingleThreadExecutor();
-    }
-    private int lensFacing = CameraSelector.LENS_FACING_BACK;
-    private int cameraIndex = 0; //licznik obiektywów
-    private void startCamera() {
-        ListenableFuture<ProcessCameraProvider> cameraProviderFuture = ProcessCameraProvider.getInstance(this);
 
-        cameraProviderFuture.addListener(() -> {
-            try {
-                ProcessCameraProvider cameraProvider = cameraProviderFuture.get();
+    } // <--- TEJ KLAMRY BRAKOWAŁO!
 
-                // POBIERAMY LISTĘ WSZYSTKICH DOSTĘPNYCH KAMER (Punkt 1)
-                List<CameraInfo> availableCameras = cameraProvider.getAvailableCameraInfos();
-                if (availableCameras.isEmpty()) return;
+    private void takePhotoAndProcess() {
+        ImageCapture currentImageCapture = cameraManager.getImageCapture();
+        if (currentImageCapture == null) return;
 
-                // Jeśli mamy np. 3 obiektywy, pilnujemy by nie wyjść poza listę
-                if (cameraIndex >= availableCameras.size()) cameraIndex = 0;
-
-                // Wybieramy konkretny obiektyw z listy
-                CameraSelector cameraSelector = availableCameras.get(cameraIndex).getCameraSelector();
-
-                Preview preview = new Preview.Builder().build();
-                preview.setSurfaceProvider(viewFinder.getSurfaceProvider());
-
-                imageCapture = new ImageCapture.Builder()
-                        .setCaptureMode(ImageCapture.CAPTURE_MODE_MAXIMIZE_QUALITY)
-                        .build();
-
-                cameraProvider.unbindAll();
-                zoomSlider.setProgress(0);
-                camera = cameraProvider.bindToLifecycle(this, cameraSelector, preview, imageCapture);
-
-                initZoomSlider();
-
-            } catch (Exception e) {
-                Toast.makeText(MainActivity.this, "Błąd startu kamery", Toast.LENGTH_SHORT).show();
-            }
-        }, ContextCompat.getMainExecutor(this));
-    }
-
-    private void initZoomSlider() {
-        zoomSlider.setMax(100); // Upewniamy się, że zakres to 0-100
-        zoomSlider.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+        currentImageCapture.takePicture(ContextCompat.getMainExecutor(this), new ImageCapture.OnImageCapturedCallback() {
             @Override
-            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                // Reagujemy tylko, gdy to użytkownik przesuwa (fromUser)
-                // i gdy mamy aktywny obiekt kamery
-                if (fromUser && camera != null) {
-                    try {
-                        // Pobieramy aktualny stan zooma z kamery
-                        ZoomState zoomState = camera.getCameraInfo().getZoomState().getValue();
-                        if (zoomState != null) {
-                            // Skalujemy progress (0.0 - 1.0)
-                            float linearZoom = (progress / 100f)*0.4f;
+            public void onCaptureSuccess(@NonNull ImageProxy image) {
+                try {
+                    Bitmap rawBitmap = imageProxyToBitmap(image);
+                    int rotationDegrees = image.getImageInfo().getRotationDegrees();
 
-                            // Bardzo ważne: setLinearZoom jest bezpieczniejsze niż setZoomRatio
-                            camera.getCameraControl().setLinearZoom(linearZoom);
-                        }
-                    } catch (Exception e) {
-                        Log.e("ZoomError", "Błąd sprzętowy zooma: " + e.getMessage());
+                    // Obrót obrazu
+                    Matrix matrix = new Matrix();
+                    matrix.postRotate(rotationDegrees);
+                    Bitmap rotatedBitmap = Bitmap.createBitmap(rawBitmap, 0, 0, rawBitmap.getWidth(), rawBitmap.getHeight(), matrix, true);
+
+                    // Szybki natywny CROP
+                    int cropSize = 224;
+                    int width = rotatedBitmap.getWidth();
+                    int height = rotatedBitmap.getHeight();
+
+                    if (width >= cropSize && height >= cropSize) {
+                        int startX = (width - cropSize) / 2;
+                        int startY = (height - cropSize) / 2;
+
+                        Bitmap croppedBitmap = Bitmap.createBitmap(rotatedBitmap, startX, startY, cropSize, cropSize);
+
+                        saveBitmapToGallery(croppedBitmap);
+                        Toast.makeText(MainActivity.this, "Wycięto środek (224x224)!", Toast.LENGTH_SHORT).show();
+
+                        // Optymalizacja pamięci
+                        rawBitmap.recycle();
+                        rotatedBitmap.recycle();
+
+                        // TUTAJ W PRZYSZŁOŚCI WYŚLEMY croppedBitmap DO NCNN
+
+                    } else {
+                        Toast.makeText(MainActivity.this, "Klatka za mała do wycięcia!", Toast.LENGTH_SHORT).show();
                     }
+
+                } catch (Exception e) {
+                    Log.e("ImageProcess", "Błąd przy obróbce: " + e.getMessage());
+                    Toast.makeText(MainActivity.this, "Błąd obróbki obrazu!", Toast.LENGTH_SHORT).show();
+                } finally {
+                    image.close();
                 }
             }
-            @Override public void onStartTrackingTouch(SeekBar seekBar) {}
-            @Override public void onStopTrackingTouch(SeekBar seekBar) {}
+
+            @Override
+            public void onError(@NonNull ImageCaptureException exception) {
+                Log.e("CameraX", "Błąd robienia zdjęcia: " + exception.getMessage());
+                Toast.makeText(MainActivity.this, "Aparat nie złapał klatki", Toast.LENGTH_SHORT).show();
+            }
         });
-    }
-
-    private void captureImage() {
-        if (imageCapture == null) return;
-
-        String timestamp = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(new Date());
-        ContentValues contentValues = new ContentValues();
-        contentValues.put(MediaStore.MediaColumns.DISPLAY_NAME, "IMG_" + timestamp + ".jpg");
-        contentValues.put(MediaStore.MediaColumns.MIME_TYPE, "image/jpeg");
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            contentValues.put(MediaStore.MediaColumns.RELATIVE_PATH, "Pictures/CameraX-Images");
-        }
-
-        ImageCapture.OutputFileOptions outputFileOptions = new ImageCapture.OutputFileOptions.Builder(
-                getContentResolver(),
-                MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
-                contentValues
-        ).build();
-
-        imageCapture.takePicture(outputFileOptions, ContextCompat.getMainExecutor(this),
-                new ImageCapture.OnImageSavedCallback() {
-                    @Override
-                    public void onImageSaved(@NonNull ImageCapture.OutputFileResults outputFileResults) {
-                        Toast.makeText(MainActivity.this, "Image saved to gallery!", Toast.LENGTH_SHORT).show();
-                    }
-
-                    @Override
-                    public void onError(@NonNull ImageCaptureException exception) {
-                        Toast.makeText(MainActivity.this, "Failed to save image", Toast.LENGTH_SHORT).show();
-                    }
-                });
-    }
-
-    private boolean allPermissionsGranted() {
-        for (String permission : REQUIRED_PERMISSIONS) {
-            if (ContextCompat.checkSelfPermission(this, permission) != PackageManager.PERMISSION_GRANTED) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if (requestCode == REQUEST_CODE_PERMISSIONS) {
-            if (allPermissionsGranted()) {
-                startCamera();
-            } else {
-                Toast.makeText(this, "Permissions not granted", Toast.LENGTH_SHORT).show();
-                finish();
-            }
-        }
     }
 
     @Override
@@ -198,8 +162,39 @@ public class MainActivity extends AppCompatActivity {
         cameraExecutor.shutdown();
     }
 
-    private static final int REQUEST_CODE_PERMISSIONS = 10;
-    private static final String[] REQUIRED_PERMISSIONS = new String[]{
-            Manifest.permission.CAMERA
-    };
+    private Bitmap imageProxyToBitmap(ImageProxy image) {
+        ByteBuffer buffer = image.getPlanes()[0].getBuffer();
+        byte[] bytes = new byte[buffer.capacity()];
+        buffer.get(bytes);
+        return BitmapFactory.decodeByteArray(bytes, 0, bytes.length, null);
+    }
+
+    private void saveBitmapToGallery(Bitmap bitmap) {
+        String timestamp = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(new Date());
+        ContentValues contentValues = new ContentValues();
+
+        contentValues.put(MediaStore.MediaColumns.DISPLAY_NAME, "AI_CROP_" + timestamp + ".jpg");
+        contentValues.put(MediaStore.MediaColumns.MIME_TYPE, "image/jpeg");
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            contentValues.put(MediaStore.MediaColumns.RELATIVE_PATH, "Pictures/Przestrzeliny");
+        }
+
+        Uri uri = getContentResolver().insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues);
+        if (uri != null) {
+            try (OutputStream out = getContentResolver().openOutputStream(uri)) {
+                bitmap.compress(Bitmap.CompressFormat.JPEG, 100, out);
+            } catch (Exception e) {
+                Log.e("Zapis", "Błąd zapisu wycinka: " + e.getMessage());
+            }
+        }
+    }
+
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        // Zlecamy Pomocnikowi analizę wyników
+        permissionHelper.handlePermissionsResult(requestCode, grantResults);
+    }
 }
