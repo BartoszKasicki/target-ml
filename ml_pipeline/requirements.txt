@@ -1,0 +1,13 @@
+# Główna biblioteka YOLO (wersja od 8.3.0 w górę, żeby wspierała YOLO11)
+ultralytics>=8.3.0
+
+# Zablokowane wersje, żeby uniknąć konfliktu Numpy 1.x vs 2.x
+numpy<2.0.0
+opencv-python<4.10.0
+
+# Narzędzia pomocnicze
+matplotlib
+
+# Zależności eksportu na Androida (ONNX) - na razie zakomentowane
+# onnx>=1.15.0
+# onnxruntime>=1.17.0

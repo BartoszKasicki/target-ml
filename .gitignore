@@ -1,3 +1,6 @@
+#MacOS
+.DS_Store
+
 # Enviroment
 venv/
 env/
@@ -13,3 +16,4 @@ __pycache__/
 runs/
 *.pt
 *.onnx
+/ml_pipeline/dataset/
