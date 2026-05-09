@@ -51,7 +51,7 @@ pip install --upgrade pip
 pip install -r requirements.txt --log install.log # Instalacja wymaganych bibliotek
 ```
 
-#### Ręczna Instalacja OLD
+#### Ręczna Instalacja OLD --- Do usunięcia
 
 ```bash
 python -m venv venv # Utworzenie 
