@@ -2,20 +2,17 @@ import os
 from ultralytics import YOLO
 
 def main():
-    # 1. Ścieżka do Twojego najlepszego modelu z ostatniego treningu
-    # (Wychodzimy folder wyżej '../', bo runs/ zapisało się w głównym katalogu target-ml)
+    # 1. Ścieżka do najlepszego modelu z ostatniego treningu
     model_path = '../runs/detect/target_runs/yolo11_holes_v1-4/weights/best.pt'
     
     if not os.path.exists(model_path):
         print(f"❌ Nie znaleziono modelu: {model_path}")
         return
 
-    # Wczytanie wyuczonego modelu
     model = YOLO(model_path)
 
     # 2. Ścieżka do zdjęcia testowego 
-    # (PODMIEŃ tę nazwę na jakieś rzeczywiste zdjęcie z raw_data)
-    image_to_test = '../raw_data/testowe_zdjecie.png' 
+    image_to_test = '../raw_data/images/0001.png' 
 
     print(f"🔍 Uruchamiam detekcję przestrzelin na zdjęciu: {image_to_test}")
     
