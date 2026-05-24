@@ -1,0 +1,29 @@
+description: Ultralytics YOLO11n model trained on dataset.yaml
+author: Ultralytics
+date: '2026-05-24T18:44:26.763193'
+version: 8.4.47
+license: AGPL-3.0 License (https://ultralytics.com/license)
+docs: https://docs.ultralytics.com
+stride: 32
+task: detect
+batch: 1
+imgsz:
+- 2048
+- 2048
+names:
+  0: 0 punktow
+  1: 1 punkt
+  2: 2 punkty
+  3: 3 punkty
+  4: 4 punkty
+  5: 5 punktow
+  6: 6 punktow
+  7: 7 punktow
+  8: 8 punktow
+  9: 9 punktow
+  10: 10 punktow
+args:
+  batch: 1
+  half: false
+channels: 3
+end2end: false

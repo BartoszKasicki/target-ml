@@ -1,0 +1,2 @@
+ninja: Entering directory `C:\Users\bkasi\Desktop\jezyki\GIT\Przestrzeliny\target-ml\android-app\opencv\.cxx\Debug\2e535m4z\armeabi-v7a'
+ninja: no work to do.

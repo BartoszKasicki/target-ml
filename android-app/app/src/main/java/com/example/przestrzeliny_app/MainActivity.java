@@ -21,7 +21,7 @@ import androidx.camera.core.*;
 import androidx.camera.view.PreviewView;
 import androidx.core.content.ContextCompat;
 
-import org.opencv.android.OpenCVLoader; // <-- OpenCV
+import org.opencv.android.OpenCVLoader;
 
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
@@ -49,7 +49,7 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        // 1. Uruchamiamy silnik OpenCV
+        // 1. Uruchamiamy silnik OpenCV (ZAKOMENTUJ TĘ LINIJKĘ JEŚLI UŻYWASZ EMULATORA API 36)
         if (OpenCVLoader.initDebug()) {
             Log.d("OPENCV", "OpenCV załadowane i czeka w gotowości!");
         } else {
@@ -94,11 +94,10 @@ public class MainActivity extends AppCompatActivity {
             permissionHelper.requestPermissions();
         }
 
-        // 7. Podpięcie przycisku robienia zdjęć (TEGO BRAKOWAŁO!)
+        // 7. Podpięcie przycisku robienia zdjęć
         btnCapture.setOnClickListener(v -> takePhotoAndProcess());
         cameraExecutor = Executors.newSingleThreadExecutor();
-
-    } // <--- TEJ KLAMRY BRAKOWAŁO!
+    }
 
     private void takePhotoAndProcess() {
         ImageCapture currentImageCapture = cameraManager.getImageCapture();
@@ -116,29 +115,32 @@ public class MainActivity extends AppCompatActivity {
                     matrix.postRotate(rotationDegrees);
                     Bitmap rotatedBitmap = Bitmap.createBitmap(rawBitmap, 0, 0, rawBitmap.getWidth(), rawBitmap.getHeight(), matrix, true);
 
-                    // Szybki natywny CROP
-                    int cropSize = 224;
+                    // --- INTELIGENTNY CROP I SKALOWANIE ---
                     int width = rotatedBitmap.getWidth();
-                    int height = rotatedBitmap.getHeight();
+                    height = rotatedBitmap.getHeight();
+                    int minSide = Math.min(width, height); // Wybiera krótszy bok (szerokość telefonu)
 
-                    if (width >= cropSize && height >= cropSize) {
-                        int startX = (width - cropSize) / 2;
-                        int startY = (height - cropSize) / 2;
+                    // Wyliczamy środek
+                    int startX = (width - minSide) / 2;
+                    int startY = (height - minSide) / 2;
 
-                        Bitmap croppedBitmap = Bitmap.createBitmap(rotatedBitmap, startX, startY, cropSize, cropSize);
+                    // 1. Wycinamy idealny kwadrat
+                    Bitmap squareBitmap = Bitmap.createBitmap(rotatedBitmap, startX, startY, minSide, minSide);
 
-                        saveBitmapToGallery(croppedBitmap);
-                        Toast.makeText(MainActivity.this, "Wycięto środek (224x224)!", Toast.LENGTH_SHORT).show();
+                    // 2. Skalujemy do wymogów modelu AI (2048x2048)
+                    int targetSize = 2048;
+                    Bitmap croppedAndScaledBitmap = Bitmap.createScaledBitmap(squareBitmap, targetSize, targetSize, true);
 
-                        // Optymalizacja pamięci
-                        rawBitmap.recycle();
-                        rotatedBitmap.recycle();
+                    // Zapisujemy gotowy obraz do galerii
+                    saveBitmapToGallery(croppedAndScaledBitmap);
+                    Toast.makeText(MainActivity.this, "Wycięto i przeskalowano (2048x2048)!", Toast.LENGTH_SHORT).show();
 
-                        // TUTAJ W PRZYSZŁOŚCI WYŚLEMY croppedBitmap DO NCNN
+                    // Optymalizacja pamięci - sprzątamy po sobie
+                    rawBitmap.recycle();
+                    rotatedBitmap.recycle();
+                    squareBitmap.recycle();
 
-                    } else {
-                        Toast.makeText(MainActivity.this, "Klatka za mała do wycięcia!", Toast.LENGTH_SHORT).show();
-                    }
+                    // TUTAJ W PRZYSZŁOŚCI WYŚLEMY croppedAndScaledBitmap DO NCNN
 
                 } catch (Exception e) {
                     Log.e("ImageProcess", "Błąd przy obróbce: " + e.getMessage());
@@ -189,7 +191,6 @@ public class MainActivity extends AppCompatActivity {
             }
         }
     }
-
 
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
