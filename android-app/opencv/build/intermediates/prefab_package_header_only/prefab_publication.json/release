@@ -1,5 +1,5 @@
 {
-  "installationFolder": "C:\\Users\\bkasi\\Desktop\\jezyki\\GIT\\Przestrzeliny\\target-ml\\opencv\\build\\intermediates\\prefab_package\\release\\prefab",
+  "installationFolder": "C:\\Users\\bkasi\\Desktop\\jezyki\\GIT\\Przestrzeliny\\target-ml\\android-app\\opencv\\build\\intermediates\\prefab_package\\release\\prefab",
   "gradlePath": ":opencv",
   "packageInfo": {
     "packageName": "opencv",
@@ -8,7 +8,7 @@
     "modules": [
       {
         "moduleName": "opencv_jni_shared",
-        "moduleHeaders": "C:\\Users\\bkasi\\Desktop\\jezyki\\GIT\\Przestrzeliny\\target-ml\\opencv\\native\\jni\\include",
+        "moduleHeaders": "C:\\Users\\bkasi\\Desktop\\jezyki\\GIT\\Przestrzeliny\\target-ml\\android-app\\opencv\\native\\jni\\include",
         "moduleExportLibraries": [],
         "abis": []
       }

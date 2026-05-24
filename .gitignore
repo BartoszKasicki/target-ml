@@ -1,0 +1,19 @@
+#MacOS
+.DS_Store
+
+# Enviroment
+venv/
+env/
+.venv/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.log
+
+# ML - Logs, Models
+runs/
+*.pt
+*.onnx
+/ml_pipeline/dataset/

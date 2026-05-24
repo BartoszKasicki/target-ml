@@ -18,11 +18,12 @@ Projekt zakłada stworzenie kompleksowego systemu do automatycznego wykrywania i
 
 ## 3. Stan prac - Model AI & NCNN (ZREALIZOWANE) (STUDENT 1)
 
-- [ ] **Trening modelu:** (np. Etap zbierania danych / Trening wstępny / Ewaluacja)
-- [ ] **Konwersja:** (np. ONNX -> NCNN)
-- [ ] **Optymalizacja:** (np. Kwantyzacja modelu do FP16/INT8)
-- [ ] **Pliki końcowe:** (Oczekiwanie na pliki .param i .bin)
-
+- [x] **Trening modelu:** - Pomyślnie przeprowadzono trening modelu YOLOv11n na pierwszej paczce danych testowych. Skonfigurowano mechanizm Early Stopping, optymalizujący czas nauki.
+- [x] **Infrastruktura danych** -  Wdrożono potok przetwarzania danych (pipeline): od surowych obrazów w raw_data/ po automatyczny podział na zbiory treningowe/walidacyjne w ml_pipeline/dataset/.
+- [x] **Python** - Przygotowano wewnętrzne środowisko python venv - jest w pliku {.gitignore} naleźy przygotować je lokalnie z pomocą instrukcji {docs/initial_setup.md}. Ustabilizowano środowisko oparte na Python 3.11 z rygorystycznym zamrożeniem wersji bibliotek numpy oraz opencv-python, co eliminuje konflikty z silnikiem PyTorch na systemach macOS.
+- [x] **Naprawa etykiet** – Zaimplementowano skrypt fix_labels.py automatycznie korygujący indeksy klas w adnotacjach dostarczanych przez symulator (mapowanie ID 10 -> 0).
+- [x] **Automatyzacja** – Przygotowano skrypt sync_dependencies.sh do błyskawicznej replikacji środowiska venv na innych stacjach roboczych.
+- [ ] **Zmiana konfiguracji klas** - Po otrzymaniu nowych danych testowych, dostosować model do wyszukiwania 2 klas: Przestrzelina i środek tarczy.  
 ---
 
 ## 4. Stan prac - Moduł Android & Przetwarzanie (ZREALIZOWANE)(STUDENT 2)

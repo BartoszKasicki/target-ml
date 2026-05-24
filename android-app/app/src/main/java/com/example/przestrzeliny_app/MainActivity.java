@@ -62,7 +62,7 @@ public class MainActivity extends AppCompatActivity {
         btnCapture = findViewById(R.id.btnCapture);
         zoomSlider = findViewById(R.id.zoomSlider);
         btnSwitchCamera = findViewById(R.id.btnSwitchCamera);
-        txtResult = findViewById(R.id.txtResult);
+        txtResult = findViewById(R.id.txtResult); //wyniki YOLO w przyszłości
 
         // 3. Inicjalizacja Menedżera Kamery
         cameraManager = new CameraManager(this, viewFinder, zoomSlider);
@@ -73,7 +73,7 @@ public class MainActivity extends AppCompatActivity {
             Toast.makeText(this, "Szukam następnego obiektywu...", Toast.LENGTH_SHORT).show();
         });
 
-        // 5. Inicjalizacja Pomocnika od uprawnień
+        // 5. Inicjalizacja Pomocnika od uprawnień z "Krótkofalówką"
         permissionHelper = new PermissionHelper(this, new PermissionHelper.PermissionListener() {
             @Override
             public void onPermissionsGranted() {
@@ -103,7 +103,6 @@ public class MainActivity extends AppCompatActivity {
         ImageCapture currentImageCapture = cameraManager.getImageCapture();
         if (currentImageCapture == null) return;
 
-        // Używamy głównego wątku, żeby Toasty działały bezpiecznie
         currentImageCapture.takePicture(ContextCompat.getMainExecutor(this), new ImageCapture.OnImageCapturedCallback() {
             @Override
             public void onCaptureSuccess(@NonNull ImageProxy image) {
@@ -118,7 +117,7 @@ public class MainActivity extends AppCompatActivity {
 
                     // --- INTELIGENTNY CROP I SKALOWANIE ---
                     int width = rotatedBitmap.getWidth();
-                    int height = rotatedBitmap.getHeight();
+                    height = rotatedBitmap.getHeight();
                     int minSide = Math.min(width, height); // Wybiera krótszy bok (szerokość telefonu)
 
                     // Wyliczamy środek

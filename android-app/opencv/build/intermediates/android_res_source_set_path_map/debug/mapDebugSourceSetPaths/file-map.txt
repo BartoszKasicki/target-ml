@@ -1,8 +1,8 @@
-org.opencv-pngs-0 C:\Users\bkasi\Desktop\jezyki\GIT\Przestrzeliny\target-ml\opencv\build\generated\res\pngs\debug
-org.opencv-updated_navigation_xml-1 C:\Users\bkasi\Desktop\jezyki\GIT\Przestrzeliny\target-ml\opencv\build\generated\updated_navigation_xml\debug
-org.opencv-mergeDebugResources-2 C:\Users\bkasi\Desktop\jezyki\GIT\Przestrzeliny\target-ml\opencv\build\intermediates\incremental\debug\mergeDebugResources\merged.dir
-org.opencv-mergeDebugResources-3 C:\Users\bkasi\Desktop\jezyki\GIT\Przestrzeliny\target-ml\opencv\build\intermediates\incremental\debug\mergeDebugResources\stripped.dir
-org.opencv-debug-4 C:\Users\bkasi\Desktop\jezyki\GIT\Przestrzeliny\target-ml\opencv\build\intermediates\merged_res\debug\mergeDebugResources
-org.opencv-debug-5 C:\Users\bkasi\Desktop\jezyki\GIT\Przestrzeliny\target-ml\opencv\build\intermediates\packaged_res\debug\packageDebugResources
-org.opencv-java-6 C:\Users\bkasi\Desktop\jezyki\GIT\Przestrzeliny\target-ml\opencv\java\res
-org.opencv-debug-7 C:\Users\bkasi\Desktop\jezyki\GIT\Przestrzeliny\target-ml\opencv\src\debug\res
+org.opencv-pngs-0 C:\Users\bkasi\Desktop\jezyki\GIT\Przestrzeliny\target-ml\android-app\opencv\build\generated\res\pngs\debug
+org.opencv-updated_navigation_xml-1 C:\Users\bkasi\Desktop\jezyki\GIT\Przestrzeliny\target-ml\android-app\opencv\build\generated\updated_navigation_xml\debug
+org.opencv-mergeDebugResources-2 C:\Users\bkasi\Desktop\jezyki\GIT\Przestrzeliny\target-ml\android-app\opencv\build\intermediates\incremental\debug\mergeDebugResources\merged.dir
+org.opencv-mergeDebugResources-3 C:\Users\bkasi\Desktop\jezyki\GIT\Przestrzeliny\target-ml\android-app\opencv\build\intermediates\incremental\debug\mergeDebugResources\stripped.dir
+org.opencv-debug-4 C:\Users\bkasi\Desktop\jezyki\GIT\Przestrzeliny\target-ml\android-app\opencv\build\intermediates\merged_res\debug\mergeDebugResources
+org.opencv-debug-5 C:\Users\bkasi\Desktop\jezyki\GIT\Przestrzeliny\target-ml\android-app\opencv\build\intermediates\packaged_res\debug\packageDebugResources
+org.opencv-java-6 C:\Users\bkasi\Desktop\jezyki\GIT\Przestrzeliny\target-ml\android-app\opencv\java\res
+org.opencv-debug-7 C:\Users\bkasi\Desktop\jezyki\GIT\Przestrzeliny\target-ml\android-app\opencv\src\debug\res
