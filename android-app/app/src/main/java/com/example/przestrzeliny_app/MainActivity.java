@@ -117,7 +117,7 @@ public class MainActivity extends AppCompatActivity {
 
                     // --- INTELIGENTNY CROP I SKALOWANIE ---
                     int width = rotatedBitmap.getWidth();
-                    height = rotatedBitmap.getHeight();
+                    int height = rotatedBitmap.getHeight();
                     int minSide = Math.min(width, height); // Wybiera krótszy bok (szerokość telefonu)
 
                     // Wyliczamy środek
