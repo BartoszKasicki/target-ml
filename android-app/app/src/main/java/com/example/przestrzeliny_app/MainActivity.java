@@ -44,12 +44,20 @@ public class MainActivity extends AppCompatActivity {
     private PermissionHelper permissionHelper;
     private ExecutorService cameraExecutor;
 
+    //ładowanie biblioteki
+    static {
+        System.loadLibrary("ncnn_bridge");
+    }
+
+    //deklaracja "mostu"
+    public native float[] detectBulletHoles(Bitmap bitmap, android.content.res.AssetManager assetManager);
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        // 1. Uruchamiamy silnik OpenCV (ZAKOMENTUJ TĘ LINIJKĘ JEŚLI UŻYWASZ EMULATORA API 36)
+        // Uruchamiamy silnik OpenCV
         if (OpenCVLoader.initDebug()) {
             Log.d("OPENCV", "OpenCV załadowane i czeka w gotowości!");
         } else {
@@ -57,23 +65,23 @@ public class MainActivity extends AppCompatActivity {
             Toast.makeText(this, "Błąd biblioteki graficznej", Toast.LENGTH_SHORT).show();
         }
 
-        // 2. Łączymy widoki z XML
+        // Łączymy widoki z XML
         viewFinder = findViewById(R.id.viewFinder);
         btnCapture = findViewById(R.id.btnCapture);
         zoomSlider = findViewById(R.id.zoomSlider);
         btnSwitchCamera = findViewById(R.id.btnSwitchCamera);
         txtResult = findViewById(R.id.txtResult); //wyniki YOLO w przyszłości
 
-        // 3. Inicjalizacja Menedżera Kamery
+        // Inicjalizacja Menedżera Kamery
         cameraManager = new CameraManager(this, viewFinder, zoomSlider);
 
-        // 4. Obsługa zmiany obiektywu
+        // Obsługa zmiany obiektywu
         btnSwitchCamera.setOnClickListener(v -> {
             cameraManager.switchCamera();
             Toast.makeText(this, "Szukam następnego obiektywu...", Toast.LENGTH_SHORT).show();
         });
 
-        // 5. Inicjalizacja Pomocnika od uprawnień z "Krótkofalówką"
+        //  Inicjalizacja Pomocnika od uprawnień z "Krótkofalówką"
         permissionHelper = new PermissionHelper(this, new PermissionHelper.PermissionListener() {
             @Override
             public void onPermissionsGranted() {
@@ -87,73 +95,149 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        // 6. Sprawdzamy uprawnienia przy starcie
+        //Sprawdzamy uprawnienia przy starcie
         if (permissionHelper.allPermissionsGranted()) {
             cameraManager.startCamera();
         } else {
             permissionHelper.requestPermissions();
         }
 
-        // 7. Podpięcie przycisku robienia zdjęć
+        // Podpięcie przycisku robienia zdjęć
         btnCapture.setOnClickListener(v -> takePhotoAndProcess());
         cameraExecutor = Executors.newSingleThreadExecutor();
     }
 
     private void takePhotoAndProcess() {
-        ImageCapture currentImageCapture = cameraManager.getImageCapture();
+        // Pobieramy interfejs kamery
+        androidx.camera.core.ImageCapture currentImageCapture = cameraManager.getImageCapture();
         if (currentImageCapture == null) return;
 
-        currentImageCapture.takePicture(ContextCompat.getMainExecutor(this), new ImageCapture.OnImageCapturedCallback() {
+        currentImageCapture.takePicture(androidx.core.content.ContextCompat.getMainExecutor(this), new androidx.camera.core.ImageCapture.OnImageCapturedCallback() {
             @Override
-            public void onCaptureSuccess(@NonNull ImageProxy image) {
+            public void onCaptureSuccess(@androidx.annotation.NonNull androidx.camera.core.ImageProxy image) {
                 try {
-                    Bitmap rawBitmap = imageProxyToBitmap(image);
+                    //Konwersja i obrót
+                    android.graphics.Bitmap rawBitmap = imageProxyToBitmap(image);
                     int rotationDegrees = image.getImageInfo().getRotationDegrees();
 
-                    // Obrót obrazu
-                    Matrix matrix = new Matrix();
+                    android.graphics.Matrix matrix = new android.graphics.Matrix();
                     matrix.postRotate(rotationDegrees);
-                    Bitmap rotatedBitmap = Bitmap.createBitmap(rawBitmap, 0, 0, rawBitmap.getWidth(), rawBitmap.getHeight(), matrix, true);
+                    android.graphics.Bitmap rotatedBitmap = android.graphics.Bitmap.createBitmap(rawBitmap, 0, 0, rawBitmap.getWidth(), rawBitmap.getHeight(), matrix, true);
 
-                    // --- INTELIGENTNY CROP I SKALOWANIE ---
-                    int width = rotatedBitmap.getWidth();
-                    int height = rotatedBitmap.getHeight();
-                    int minSide = Math.min(width, height); // Wybiera krótszy bok (szerokość telefonu)
+                    // IDEALNY CROP (MATEMATYKA CAMERAX) ---
+                    android.view.View viewFinder = findViewById(R.id.viewFinder);
+                    android.view.View targetFrame = findViewById(R.id.targetFrame);
 
-                    // Wyliczamy środek
-                    int startX = (width - minSide) / 2;
-                    int startY = (height - minSide) / 2;
+                    int w_img = rotatedBitmap.getWidth();
+                    int h_img = rotatedBitmap.getHeight();
+                    int w_view = viewFinder.getWidth();
+                    int h_view = viewFinder.getHeight();
 
-                    // 1. Wycinamy idealny kwadrat
-                    Bitmap squareBitmap = Bitmap.createBitmap(rotatedBitmap, startX, startY, minSide, minSide);
+                    // Obliczamy rzeczywistą skalę, jakiej Android użył do wypełnienia ekranu (FILL_CENTER)
+                    float scale = Math.max((float) w_view / w_img, (float) h_view / h_img);
 
-                    // 2. Skalujemy do wymogów modelu AI (2048x2048)
+                    // Przeliczamy fizyczną wielkość ramki z ekranu na piksele matrycy aparatu
+                    int cropSize = (int) (targetFrame.getWidth() / scale);
+
+                    // Wyliczamy środek cięcia
+                    int startX = (w_img - cropSize) / 2;
+                    int startY = (h_img - cropSize) / 2;
+
+                    // Zabezpieczenie na wypadek ułamków pikseli i wyjścia poza krawędź
+                    startX = Math.max(0, startX);
+                    startY = Math.max(0, startY);
+                    if (startX + cropSize > w_img) cropSize = w_img - startX;
+                    if (startY + cropSize > h_img) cropSize = h_img - startY;
+
+                    // Cięcie! Zostaje 100% to, co było widać w ramce
+                    android.graphics.Bitmap squareBitmap = android.graphics.Bitmap.createBitmap(rotatedBitmap, startX, startY, cropSize, cropSize);
+
+                    // SKALOWANIE DLA AI
+                    // Skalujemy wyciętą tarczę dla naszej sztucznej inteligencji (wymuszone 2048x2048)
                     int targetSize = 2048;
-                    Bitmap croppedAndScaledBitmap = Bitmap.createScaledBitmap(squareBitmap, targetSize, targetSize, true);
+                    android.graphics.Bitmap croppedAndScaledBitmap = android.graphics.Bitmap.createScaledBitmap(squareBitmap, targetSize, targetSize, true);
 
-                    // Zapisujemy gotowy obraz do galerii
+                    // Zapisujemy ten wycięty ideał do galerii, żeby widzieć co poszło do AI
                     saveBitmapToGallery(croppedAndScaledBitmap);
-                    Toast.makeText(MainActivity.this, "Wycięto i przeskalowano (2048x2048)!", Toast.LENGTH_SHORT).show();
 
-                    // Optymalizacja pamięci - sprzątamy po sobie
+                    // PRZESYŁAMY DO AI (Most C++)
+                    float[] wyniki = detectBulletHoles(croppedAndScaledBitmap, getAssets());
+
+                    //odbieramy to co widzi AI
+                    if (wyniki != null && wyniki.length > 0) {
+                        int liczbaPrzestrzelin = wyniki.length / 4;
+                        StringBuilder raport = new StringBuilder();
+                        raport.append("ZNALAZŁEM ").append(liczbaPrzestrzelin).append(" STRZAŁ(ÓW):\n");
+                        raport.append("=== SUROWE DANE Z NCNN ===\n");
+
+                        // Przygotowujemy pędzle i nową bitmapę do narysowania czerwonych celowników
+                        android.graphics.Bitmap wynikowaBitmapa = croppedAndScaledBitmap.copy(android.graphics.Bitmap.Config.ARGB_8888, true);
+                        android.graphics.Canvas canvas = new android.graphics.Canvas(wynikowaBitmapa);
+
+                        android.graphics.Paint paintKolo = new android.graphics.Paint();
+                        paintKolo.setColor(android.graphics.Color.RED);
+                        paintKolo.setStyle(android.graphics.Paint.Style.STROKE);
+                        paintKolo.setStrokeWidth(15f); // Grubość celownika
+
+                        android.graphics.Paint paintTekst = new android.graphics.Paint();
+                        paintTekst.setColor(android.graphics.Color.GREEN);
+                        paintTekst.setTextSize(60f); // Wielkość tekstu (punktów)
+                        paintTekst.setFakeBoldText(true);
+
+                        for (int i = 0; i < liczbaPrzestrzelin; i++) {
+                            int baseIndex = i * 4;
+                            float x = wyniki[baseIndex];
+                            float y = wyniki[baseIndex + 1];
+                            int klasaPunktow = (int) wyniki[baseIndex + 2];
+                            float pewnosc = wyniki[baseIndex + 3] * 100;
+
+                            // Malujemy kółko i podpis na zdjęciu
+                            canvas.drawCircle(x, y, 40f, paintKolo);
+                            canvas.drawText(String.valueOf(klasaPunktow), x + 50, y + 20, paintTekst);
+
+                            // Formatowanie tekstu punktów
+                            String wynikSlowny = klasaPunktow == 0 ? "0 punktów" : klasaPunktow == 1 ? "1 punkt" : klasaPunktow + " punkty";
+                            if(klasaPunktow >= 5) wynikSlowny = klasaPunktow + " punktów";
+
+                            raport.append(String.format(java.util.Locale.US, "[%d] Pkt: %d | Pewność: %.1f%% | Poz: X:%.0f, Y:%.0f\n", i+1, klasaPunktow, pewnosc, x, y));
+                        }
+
+                        // WYŚWIETLAMY WYNIKI W INTERFEJSIE UŻYTKOWNIKA
+                        runOnUiThread(() -> {
+                            // Pokazujemy tekst na ekranie
+                            txtResult.setText(raport.toString());
+
+                            // Wyciągamy wielki podgląd i rzucamy na niego zamrożone, pomalowane zdjęcie
+                            android.widget.ImageView imageViewResult = findViewById(R.id.imageViewResult);
+                            imageViewResult.setImageBitmap(wynikowaBitmapa);
+                            imageViewResult.setVisibility(android.view.View.VISIBLE);
+
+                            // Kiedy prowadzacy kliknie palcem w wynikowe zdjęcie, zniknie ono i będzie mógł zrobić następne
+                            imageViewResult.setOnClickListener(v -> v.setVisibility(android.view.View.GONE));
+                        });
+
+                    } else {
+                        runOnUiThread(() -> txtResult.setText("Nie znalazłem przestrzelin."));
+                    }
+
+                    //OPTYMALIZACJA - sprzątamy pamięć RAM telefonu po ciężkich operacjach
                     rawBitmap.recycle();
                     rotatedBitmap.recycle();
                     squareBitmap.recycle();
 
-                    // TUTAJ W PRZYSZŁOŚCI WYŚLEMY croppedAndScaledBitmap DO NCNN
-
                 } catch (Exception e) {
-                    Log.e("ImageProcess", "Błąd przy obróbce: " + e.getMessage());
-                    Toast.makeText(MainActivity.this, "Błąd obróbki obrazu!", Toast.LENGTH_SHORT).show();
+                    android.util.Log.e("ImageProcess", "Błąd przy obróbce: " + e.getMessage());
+                    runOnUiThread(() -> android.widget.Toast.makeText(MainActivity.this, "Błąd obróbki obrazu!", android.widget.Toast.LENGTH_SHORT).show());
                 } finally {
+                    // Zamknięcie bufora aparatu - niezbędne, by móc zrobić kolejne zdjęcie
                     image.close();
                 }
             }
 
             @Override
-            public void onError(@NonNull ImageCaptureException exception) {
-                Log.e("CameraX", "Błąd robienia zdjęcia: " + exception.getMessage());
-                Toast.makeText(MainActivity.this, "Aparat nie złapał klatki", Toast.LENGTH_SHORT).show();
+            public void onError(@androidx.annotation.NonNull androidx.camera.core.ImageCaptureException exception) {
+                android.util.Log.e("CameraX", "Błąd robienia zdjęcia: " + exception.getMessage());
+                runOnUiThread(() -> android.widget.Toast.makeText(MainActivity.this, "Aparat nie złapał klatki", android.widget.Toast.LENGTH_SHORT).show());
             }
         });
     }

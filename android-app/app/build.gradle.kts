@@ -18,7 +18,21 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        externalNativeBuild {
+            cmake {
+                cppFlags += ""
+            }
+        }
+        externalNativeBuild {
+            cmake {
+                cppFlags += "-std=c++14 -frtti -fexceptions"
+                // To wymusi zbudowanie bibliotek dla najpopularniejszych architektur
+                arguments("-DANDROID_STL=c++_shared")
+                abiFilters("armeabi-v7a", "arm64-v8a", "x86", "x86_64")
+            }
+        }
     }
+
 
     buildTypes {
         release {
@@ -32,6 +46,12 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
+    }
+    externalNativeBuild {
+        cmake {
+            path = file("src/main/cpp/CMakeLists.txt")
+            version = "3.22.1"
+        }
     }
 }
 

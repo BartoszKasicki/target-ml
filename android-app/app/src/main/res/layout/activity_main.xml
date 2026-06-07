@@ -55,7 +55,7 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
 
-    <!--Przycisk "Zmień kamerę" (mniejszy, po prawej stronie głównego) -->
+    <!--Przycisk "Zmień kamerę" -->
     <Button
         android:id="@+id/btnSwitchCamera"
         android:layout_width="wrap_content"
@@ -67,6 +67,31 @@
         app:layout_constraintBottom_toBottomOf="@id/btnCapture"
         app:layout_constraintStart_toEndOf="@id/btnCapture"
         app:layout_constraintTop_toTopOf="@id/btnCapture" />
+
+    <View
+        android:id="@+id/targetFrame"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_marginStart="-30dp"
+        android:layout_marginEnd="-30dp"
+        android:background="@drawable/target_frame_border"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintDimensionRatio="H,1:1" />
+    <ImageView
+        android:id="@+id/imageViewResult"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:background="#FF000000"
+        android:scaleType="fitCenter"
+        android:visibility="gone"
+        android:elevation="10dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
 
     <!-- Suwak Zoomu-->
     <SeekBar

@@ -1,15 +1,31 @@
-*.iml
-.gradle
-/local.properties
-/.idea/caches
-/.idea/libraries
-/.idea/modules.xml
-/.idea/workspace.xml
-/.idea/navEditor.xml
-/.idea/assetWizardSettings.xml
-.DS_Store
-/build
-/captures
-.externalNativeBuild
-.cxx
+# Android / Gradle / Build
+.gradle/
+build/
+app/build/
+.externalNativeBuild/
+.cxx/
 local.properties
+
+# IDE / System
+.idea/
+.DS_Store
+*.iml
+*.iws
+*.ipr
+*.ids
+
+# Środowiska i Pythona (jeśli masz tam skrypty trenujące model)
+venv/
+env/
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.log
+
+# Jeśli model.ncnn.bin jest mały (kilka MB), możesz go zostawić w repo.
+# Jeśli waży setki MB, lepiej go wykluczyć i użyć Git LFS.
+runs/
+*.pt
+*.onnx
+/ml_pipeline/dataset/
