@@ -15,7 +15,7 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
-    <!--Celownik (na środku) -->
+    <!--Celownik -->
     <com.example.przestrzeliny_app.CrosshairView
         android:id="@+id/crosshairView"
         android:layout_width="0dp"
@@ -26,7 +26,7 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
-    <!--Wyniki AI (lewy górny róg) -->
+    <!--Wyniki AI -->
     <TextView
         android:id="@+id/txtResult"
         android:layout_width="wrap_content"

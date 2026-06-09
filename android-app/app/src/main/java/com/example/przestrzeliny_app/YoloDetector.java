@@ -6,7 +6,7 @@ import android.graphics.Bitmap;
 
 public class YoloDetector {
 
-    // Ładowanie biblioteki C++, którą za chwilę stworzymy
+    // Ładowanie biblioteki C++
     static {
         System.loadLibrary("ncnn_bridge");
     }

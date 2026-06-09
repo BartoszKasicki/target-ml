@@ -65,6 +65,12 @@ public class MainActivity extends AppCompatActivity {
         txtResult = findViewById(R.id.txtResult);
         imageViewResult = findViewById(R.id.imageViewResult);
 
+
+        imageViewResult.setOnClickListener(v -> {
+
+            imageViewResult.setVisibility(View.GONE);
+        });
+
         yoloDetector = new YoloDetector();
         yoloDetector.initModel(getAssets(), "model.ncnn.param", "model.ncnn.bin");
 
@@ -84,8 +90,14 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void takePhotoAndProcess() {
+        // Kliknięto przycisk  ->  teraz czyścimy stary wynik i piszemy, że analizujemy
+        txtResult.setText("Analizuję strzał...");
+
         ImageCapture imageCapture = cameraManager.getImageCapture();
-        if (imageCapture == null) return;
+        if (imageCapture == null) {
+            txtResult.setText("Czekam na strzał...");
+            return;
+        }
 
         imageCapture.takePicture(ContextCompat.getMainExecutor(this), new ImageCapture.OnImageCapturedCallback() {
             @Override
@@ -103,6 +115,7 @@ public class MainActivity extends AppCompatActivity {
                     int cropSize = (int) (targetFrame.getWidth() / scale);
                     int startX = Math.max(0, (rotatedBitmap.getWidth() - cropSize) / 2);
                     int startY = Math.max(0, (rotatedBitmap.getHeight() - cropSize) / 2);
+
                     Bitmap squareBitmap = Bitmap.createBitmap(rotatedBitmap, startX, startY, cropSize, cropSize);
                     Bitmap croppedAndScaledBitmap = Bitmap.createScaledBitmap(squareBitmap, 2048, 2048, true);
 
@@ -126,28 +139,52 @@ public class MainActivity extends AppCompatActivity {
                         double szerokoscStrefy = promienTarczy / 10.0;
 
                         StringBuilder raport = new StringBuilder();
+                        int sumaPunktow = 0; // Zmienna do liczenia sumy
+
                         for (Detection det : wyniki) {
                             double dystans = Math.sqrt(Math.pow(det.x - srodekX, 2) + Math.pow(det.y - srodekY, 2));
                             int punkty = Math.max(0, (int)(10 - (dystans / szerokoscStrefy)));
+
+                            sumaPunktow += punkty; // Dodajemy trafienie do sumy całkowitej
+
                             canvas.drawCircle(det.x, det.y, 40f, paintKolo);
                             canvas.drawText(String.valueOf(punkty), det.x + 45, det.y + 20, paintTekst);
                             raport.append("Punkty: ").append(punkty).append("\n");
                         }
 
+                        // Dodanie podsumowania na końcu raportu
+                        raport.append("----------------\n");
+                        raport.append("Suma: ").append(sumaPunktow);
+
                         runOnUiThread(() -> {
+                            // Podmieniamy treść na raport z punktami i sumą
                             txtResult.setText(raport.toString());
+
                             imageViewResult.setImageBitmap(wynikowaBitmapa);
                             imageViewResult.setVisibility(View.VISIBLE);
                             saveResultToGallery(wynikowaBitmapa);
                         });
+                    } else {
+                        runOnUiThread(() -> {
+                            txtResult.setText("Brak przestrzelin");
+                            Toast.makeText(MainActivity.this, "AI nie wykryło przestrzelin.", Toast.LENGTH_SHORT).show();
+                        });
                     }
+
                     rawBitmap.recycle();
                     rotatedBitmap.recycle();
                 } catch (Exception e) {
                     Log.e("Error", e.getMessage());
+                    runOnUiThread(() -> txtResult.setText("Błąd analizy"));
                 } finally {
                     image.close();
                 }
+            }
+
+            @Override
+            public void onError(@NonNull ImageCaptureException exception) {
+                Log.e("Error", exception.getMessage());
+                runOnUiThread(() -> txtResult.setText("Czekam na strzał..."));
             }
         });
     }
@@ -161,7 +198,7 @@ public class MainActivity extends AppCompatActivity {
         try (FileOutputStream out = new FileOutputStream(file)) {
             bitmap.compress(Bitmap.CompressFormat.JPEG, 95, out);
             MediaScannerConnection.scanFile(this, new String[]{file.getAbsolutePath()}, null, null);
-            runOnUiThread(() -> Toast.makeText(this, "Zapisano w folderze PrzestrzelinyApp!", Toast.LENGTH_LONG).show());
+            runOnUiThread(() -> Toast.makeText(this, "Zapisano wynik v Galerii!", Toast.LENGTH_SHORT).show());
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -174,18 +211,17 @@ public class MainActivity extends AppCompatActivity {
         return BitmapFactory.decodeByteArray(bytes, 0, bytes.length, null);
     }
 
-
-@Override
-protected void onDestroy() {
-    super.onDestroy();
-    if (cameraExecutor != null) {
-        cameraExecutor.shutdown();
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (cameraExecutor != null) {
+            cameraExecutor.shutdown();
+        }
     }
-}
 
-@Override
-public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-    super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-    permissionHelper.handlePermissionsResult(requestCode, grantResults);
-}
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        permissionHelper.handlePermissionsResult(requestCode, grantResults);
+    }
 }

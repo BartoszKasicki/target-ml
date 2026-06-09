@@ -13,12 +13,12 @@
 ncnn::Net yolo_model;
 bool is_model_loaded = false;
 
-// Skoro model był trenowany na 2048, musi tu być 2048!
+// Skoro model był trenowany na 2048
 const int INPUT_SIZE = 2048;
 const int NUM_CLASSES = 11;
-// Próg 15% - idealny kompromis, żeby złapać dziury na białym tle, ale odrzucić szum
-const float CONF_THRESHOLD = 0.15f;
-const float NMS_THRESHOLD = 0.45f;
+
+const float CONF_THRESHOLD = 0.15f;// Próg 15% pewności modelu
+const float NMS_THRESHOLD = 0.45f; // Próg 45% powielenia
 
 struct Object {
     float x, y, w, h;
